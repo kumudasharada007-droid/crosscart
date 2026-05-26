@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CrossCart — Find the Best Price</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0a0f; --bg2:#13131a; --bg3:#1c1c26;
+  --border:#2a2a3a; --accent:#6c63ff; --accent2:#ff6584;
+  --accent3:#43e97b; --gold:#ffd166; --text:#f0f0f8; --muted:#7a7a9a;
+  --amazon:#ff9900; --flipkart:#2874f0; --meesho:#f43397; --snapdeal:#e40000;
+  --radius:14px; --shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:-40%;left:-20%;width:80vw;height:80vw;background:radial-gradient(circle,rgba(108,99,255,0.07) 0%,transparent 65%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;bottom:-30%;right:-10%;width:60vw;height:60vw;background:radial-gradient(circle,rgba(255,101,132,0.05) 0%,transparent 65%);pointer-events:none;z-index:0;}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 48px;background:rgba(10,10,15,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.logo{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.logo span{color:var(--gold);-webkit-text-fill-color:var(--gold);}
+.nav-links{display:flex;gap:14px;align-items:center;}
+.nav-links a{color:var(--muted);font-size:0.9rem;text-decoration:none;transition:color 0.2s;}
+.nav-links a:hover{color:var(--text);}
+
+.nav-login-btn{background:transparent;color:var(--text);border:1px solid var(--border);padding:8px 18px;border-radius:8px;font-size:0.85rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:border-color 0.2s,color 0.2s;}
+.nav-login-btn:hover{border-color:var(--accent);color:var(--accent);}
+.nav-signup-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity 0.2s;}
+.nav-signup-btn:hover{opacity:0.85;}
+.nav-alert-btn{background:transparent;color:var(--gold);border:1px solid rgba(255,209,102,0.3);padding:8px 16px;border-radius:8px;font-size:0.85rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.2s;display:flex;align-items:center;gap:6px;}
+.nav-alert-btn:hover{background:rgba(255,209,102,0.08);}
+
+.nav-user{display:none;align-items:center;gap:10px;}
+.nav-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;color:#fff;cursor:pointer;border:2px solid transparent;transition:border-color 0.2s;}
+.nav-avatar:hover{border-color:var(--accent);}
+
+/* Notification bell */
+.notif-bell{position:relative;cursor:pointer;background:none;border:none;color:var(--muted);font-size:1.2rem;padding:4px;transition:color 0.2s;}
+.notif-bell:hover{color:var(--text);}
+.notif-badge{position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:var(--accent2);font-size:0.6rem;font-weight:700;color:#fff;display:none;align-items:center;justify-content:center;}
+.notif-badge.show{display:flex;}
+
+/* Notification dropdown */
+.notif-dropdown{position:absolute;top:calc(100% + 16px);right:0;width:340px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);display:none;z-index:500;overflow:hidden;animation:modalIn 0.2s ease;}
+.notif-dropdown.open{display:block;}
+.notif-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.notif-header h4{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;}
+.notif-clear{font-size:0.75rem;color:var(--accent);cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;}
+.notif-clear:hover{text-decoration:underline;}
+.notif-list{max-height:320px;overflow-y:auto;}
+.notif-item{padding:14px 20px;border-bottom:1px solid rgba(42,42,58,0.5);display:flex;gap:12px;align-items:flex-start;transition:background 0.15s;}
+.notif-item:hover{background:rgba(108,99,255,0.05);}
+.notif-item.unread{background:rgba(108,99,255,0.06);}
+.notif-item-icon{font-size:1.3rem;flex-shrink:0;margin-top:2px;}
+.notif-item-body{flex:1;}
+.notif-item-title{font-size:0.85rem;font-weight:600;margin-bottom:3px;}
+.notif-item-msg{font-size:0.78rem;color:var(--muted);line-height:1.4;}
+.notif-item-time{font-size:0.7rem;color:var(--muted);margin-top:4px;}
+.notif-empty{padding:32px;text-align:center;color:var(--muted);font-size:0.85rem;}
+.notif-wrapper{position:relative;}
+
+/* HERO */
+.hero{position:relative;z-index:1;text-align:center;padding:80px 24px 60px;}
+.hero-badge{display:inline-block;background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);color:var(--accent);font-size:0.78rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;padding:6px 16px;border-radius:100px;margin-bottom:24px;}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(2.4rem,6vw,4.5rem);font-weight:800;line-height:1.1;margin-bottom:16px;}
+.hero h1 em{font-style:normal;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero p{color:var(--muted);font-size:1.05rem;max-width:520px;margin:0 auto 40px;line-height:1.6;}
+
+/* SEARCH */
+.search-wrap{max-width:660px;margin:0 auto;display:flex;background:var(--bg2);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color 0.3s,box-shadow 0.3s;}
+.search-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px rgba(108,99,255,0.12);}
+#searchInput{flex:1;background:transparent;border:none;outline:none;padding:18px 24px;color:var(--text);font-size:1rem;font-family:'DM Sans',sans-serif;}
+#searchInput::placeholder{color:var(--muted);}
+#searchBtn{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;border:none;padding:0 32px;font-size:1rem;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity 0.2s;white-space:nowrap;}
+#searchBtn:hover{opacity:0.9;}
+
+/* PLATFORM PILLS */
+.platforms{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px;}
+.pill{display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);padding:6px 14px;border-radius:100px;font-size:0.8rem;color:var(--muted);}
+.pill-dot{width:7px;height:7px;border-radius:50%;}
+
+/* LOADING */
+#loading{display:none;text-align:center;padding:60px;}
+.spinner{width:48px;height:48px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{color:var(--muted);font-size:0.95rem;}
+
+/* RESULTS */
+#results{display:none;position:relative;z-index:1;}
+
+/* BEST PRICE BANNER */
+.best-banner{max-width:900px;margin:0 auto 32px;background:linear-gradient(135deg,rgba(67,233,123,0.08),rgba(108,99,255,0.08));border:1px solid rgba(67,233,123,0.2);border-radius:var(--radius);padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+.best-left{display:flex;align-items:center;gap:16px;}
+.best-icon{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--accent3),#00b4d8);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;}
+.best-label{font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent3);margin-bottom:4px;}
+.best-name{font-size:1rem;font-weight:500;color:var(--text);max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.best-right{text-align:right;}
+.best-price{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--accent3);}
+.best-app{font-size:0.85rem;color:var(--muted);margin-top:2px;}
+.best-link{display:inline-block;margin-top:8px;background:var(--accent3);color:#000;padding:7px 18px;border-radius:8px;font-size:0.85rem;font-weight:600;text-decoration:none;transition:opacity 0.2s;}
+.best-link:hover{opacity:0.85;}
+
+/* SECTION TITLE */
+.section-title{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.section-title span{font-size:0.75rem;font-weight:500;color:var(--muted);font-family:'DM Sans',sans-serif;}
+
+/* MAIN GRID */
+.main-grid{max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:0 24px;}
+@media(max-width:700px){.main-grid{grid-template-columns:1fr;}}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card-full{grid-column:1/-1;}
+
+/* PRICE ROWS */
+.price-cards{display:flex;flex-direction:column;gap:10px;}
+.price-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;transition:transform 0.15s,border-color 0.2s;cursor:pointer;text-decoration:none;color:inherit;}
+.price-row:hover{transform:translateX(4px);border-color:var(--accent);}
+.price-row.cheapest{border-color:rgba(67,233,123,0.4);background:rgba(67,233,123,0.04);}
+.platform-info{display:flex;align-items:center;gap:12px;}
+.platform-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.platform-name{font-weight:500;font-size:0.95rem;}
+.platform-ship{font-size:0.75rem;color:var(--muted);margin-top:2px;}
+.price-val{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;}
+.price-row.cheapest .price-val{color:var(--accent3);}
+.est-tag{font-size:0.68rem;padding:2px 7px;background:rgba(255,209,102,0.12);color:var(--gold);border-radius:4px;margin-left:6px;vertical-align:middle;}
+.best-tag{font-size:0.68rem;padding:2px 7px;background:rgba(67,233,123,0.12);color:var(--accent3);border-radius:4px;margin-left:6px;}
+
+/* CHART */
+.chart-wrap{position:relative;height:220px;}
+
+/* SAVINGS */
+.savings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.saving-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.saving-label{font-size:0.75rem;color:var(--muted);margin-bottom:4px;}
+.saving-value{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;color:var(--accent);}
+
+/* MODAL BASE */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:36px;width:min(480px,90vw);animation:modalIn 0.25s ease;}
+@keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.modal h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;margin-bottom:6px;}
+.modal p{color:var(--muted);font-size:0.9rem;margin-bottom:24px;}
+.modal-form{display:flex;flex-direction:column;gap:14px;}
+.modal-input{background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:13px 16px;color:var(--text);font-size:0.95rem;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;width:100%;}
+.modal-input:focus{border-color:var(--accent);}
+.modal-input::placeholder{color:var(--muted);}
+.modal-row{display:flex;gap:10px;}
+.modal-submit{flex:1;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:13px;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity 0.2s;}
+.modal-submit:hover{opacity:0.88;}
+.modal-cancel{background:var(--bg3);color:var(--muted);border:1px solid var(--border);padding:13px 18px;border-radius:10px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color 0.2s;}
+.modal-cancel:hover{color:var(--text);}
+.modal-close{float:right;background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0;}
+
+/* AUTH MODAL */
+.auth-tabs{display:flex;margin-bottom:28px;background:var(--bg3);border-radius:10px;padding:4px;}
+.auth-tab{flex:1;padding:9px;border:none;background:transparent;color:var(--muted);font-size:0.9rem;font-weight:500;cursor:pointer;border-radius:7px;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.auth-tab.active{background:var(--bg2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+.modal-logo{text-align:center;margin-bottom:20px;}
+.modal-logo .logo-text{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.modal-logo .logo-text span{color:var(--gold);-webkit-text-fill-color:var(--gold);}
+.divider{display:flex;align-items:center;gap:12px;margin:4px 0;color:var(--muted);font-size:0.8rem;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.social-btn{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;transition:border-color 0.2s,background 0.2s;}
+.social-btn:hover{border-color:var(--accent);background:rgba(108,99,255,0.06);}
+.auth-footer{text-align:center;margin-top:8px;font-size:0.82rem;color:var(--muted);}
+.auth-footer a{color:var(--accent);cursor:pointer;}
+.auth-footer a:hover{text-decoration:underline;}
+.input-group{position:relative;}
+.input-group .modal-input{padding-right:44px;}
+.input-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;}
+.form-label{font-size:0.8rem;color:var(--muted);margin-bottom:4px;display:block;}
+.strength-bar{height:3px;border-radius:2px;margin-top:6px;background:var(--border);overflow:hidden;}
+.strength-fill{height:100%;border-radius:2px;transition:width 0.3s,background 0.3s;width:0%;}
+
+/* USER DROPDOWN */
+.user-dropdown{position:absolute;top:calc(100% + 12px);right:0;width:200px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);display:none;z-index:500;animation:modalIn 0.2s ease;overflow:hidden;}
+.user-dropdown.open{display:block;}
+.user-dropdown-header{padding:14px 16px;border-bottom:1px solid var(--border);}
+.user-dropdown-name{font-weight:600;font-size:0.9rem;margin-bottom:2px;}
+.user-dropdown-email{font-size:0.75rem;color:var(--muted);}
+.user-dropdown-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:0.88rem;cursor:pointer;transition:background 0.15s;border:none;background:none;color:var(--text);width:100%;text-align:left;font-family:'DM Sans',sans-serif;}
+.user-dropdown-item:hover{background:rgba(108,99,255,0.08);}
+.user-dropdown-item.danger{color:var(--accent2);}
+.user-dropdown-item.danger:hover{background:rgba(255,101,132,0.08);}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;z-index:300;background:var(--bg2);border:1px solid var(--accent3);border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:12px;font-size:0.9rem;transform:translateY(80px);opacity:0;transition:all 0.3s ease;max-width:340px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast-icon{font-size:1.2rem;}
+.toast.price-drop{border-color:var(--gold);background:linear-gradient(135deg,rgba(255,209,102,0.1),var(--bg2));}
+
+/* HISTORY */
+.history-list{display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;}
+.history-list::-webkit-scrollbar{width:4px;}
+.history-list::-webkit-scrollbar-track{background:var(--bg3);}
+.history-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.history-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg3);border-radius:8px;font-size:0.85rem;}
+.history-app{color:var(--muted);}
+.history-price{font-weight:600;}
+.history-time{font-size:0.75rem;color:var(--muted);}
+
+/* EMPTY STATE */
+#emptyState{display:none;text-align:center;padding:80px 24px;position:relative;z-index:1;}
+.empty-icon{font-size:3.5rem;margin-bottom:16px;}
+.empty-title{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;margin-bottom:8px;}
+.empty-sub{color:var(--muted);}
+
+/* FEATURES */
+.features{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;padding:60px 24px;position:relative;z-index:1;max-width:900px;margin:0 auto;}
+.feature-card{flex:1;min-width:200px;max-width:240px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px;transition:transform 0.2s,border-color 0.2s;}
+.feature-card:hover{transform:translateY(-4px);border-color:var(--accent);}
+.feature-icon{font-size:1.8rem;margin-bottom:12px;}
+.feature-title{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;margin-bottom:6px;}
+.feature-desc{font-size:0.82rem;color:var(--muted);line-height:1.5;}
+
+/* FOOTER */
+footer{text-align:center;padding:32px;border-top:1px solid var(--border);color:var(--muted);font-size:0.82rem;position:relative;z-index:1;}
+footer strong{color:var(--accent);}
+
+/* QUICK ALERT BAR */
+.alert-quick-bar{max-width:900px;margin:0 auto 20px;background:linear-gradient(135deg,rgba(108,99,255,0.07),rgba(255,209,102,0.05));border:1px solid rgba(108,99,255,0.2);border-radius:var(--radius);padding:16px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:space-between;}
+.alert-quick-bar span{font-size:0.9rem;color:var(--muted);}
+.alert-quick-bar strong{color:var(--text);}
+.alert-set-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity 0.2s;white-space:nowrap;}
+.alert-set-btn:hover{opacity:0.85;}
+
+/* MY ALERTS */
+.my-alert-item{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;}
+.my-alert-product{font-weight:500;font-size:0.9rem;margin-bottom:3px;}
+.my-alert-meta{font-size:0.78rem;color:var(--muted);}
+.my-alert-delete{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px;transition:color 0.2s;}
+.my-alert-delete:hover{color:var(--accent2);}
+
+/* RESPONSIVE */
+@media(max-width:600px){nav{padding:14px 20px;}.hero{padding:50px 20px 40px;}.best-banner{padding:20px;}.best-price{font-size:1.6rem;}.savings-grid{grid-template-columns:1fr;}.nav-login-btn{display:none;}}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.fade-up{animation:fadeUp 0.45s ease forwards;}
+.fade-up-d1{animation-delay:0.05s;opacity:0;}
+.fade-up-d2{animation-delay:0.1s;opacity:0;}
+.fade-up-d3{animation-delay:0.15s;opacity:0;}
+@keyframes bellRing{0%,100%{transform:rotate(0);}15%{transform:rotate(15deg);}30%{transform:rotate(-12deg);}45%{transform:rotate(10deg);}60%{transform:rotate(-8deg);}75%{transform:rotate(5deg);}}
+.bell-ring{animation:bellRing 0.6s ease;}
+
+/* ── AUTH GATE ──────────────────────────── */
+#authGate{
+  position:fixed;inset:0;z-index:1000;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
+#authGate::before{
+  content:'';position:absolute;top:-30%;left:-20%;
+  width:80vw;height:80vw;
+  background:radial-gradient(circle,rgba(108,99,255,0.1) 0%,transparent 60%);
+  pointer-events:none;
+}
+#authGate::after{
+  content:'';position:absolute;bottom:-20%;right:-10%;
+  width:60vw;height:60vw;
+  background:radial-gradient(circle,rgba(255,101,132,0.07) 0%,transparent 60%);
+  pointer-events:none;
+}
+.gate-card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:44px 40px;
+  width:min(460px,100%);
+  position:relative;z-index:1;
+  animation:fadeUp 0.5s ease;
+  box-shadow:0 24px 80px rgba(0,0,0,0.6);
+}
+.gate-logo{
+  text-align:center;margin-bottom:10px;
+  font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.gate-logo span{color:var(--gold);-webkit-text-fill-color:var(--gold);}
+.gate-tagline{text-align:center;color:var(--muted);font-size:0.9rem;margin-bottom:32px;}
+.gate-tabs{display:flex;background:var(--bg3);border-radius:10px;padding:4px;margin-bottom:28px;}
+.gate-tab{flex:1;padding:9px;border:none;background:transparent;color:var(--muted);font-size:0.9rem;font-weight:500;cursor:pointer;border-radius:7px;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.gate-tab.active{background:var(--bg2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.35);}
+.gate-form{display:flex;flex-direction:column;gap:14px;}
+.gate-input{background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:13px 16px;color:var(--text);font-size:0.95rem;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;width:100%;}
+.gate-input:focus{border-color:var(--accent);}
+.gate-input::placeholder{color:var(--muted);}
+.gate-submit{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:14px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;transition:opacity 0.2s;letter-spacing:0.02em;}
+.gate-submit:hover{opacity:0.88;}
+.gate-social{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:0.9rem;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;transition:border-color 0.2s,background 0.2s;}
+.gate-social:hover{border-color:var(--accent);background:rgba(108,99,255,0.07);}
+.gate-divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:0.8rem;}
+.gate-divider::before,.gate-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.gate-footer{text-align:center;font-size:0.82rem;color:var(--muted);margin-top:4px;}
+.gate-footer a{color:var(--accent);cursor:pointer;}
+.gate-footer a:hover{text-decoration:underline;}
+.gate-igroup{position:relative;}
+.gate-igroup .gate-input{padding-right:44px;}
+.gate-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;}
+.gate-name-row{display:flex;gap:12px;}
+.gate-name-row > div{flex:1;}
+.gate-label{font-size:0.8rem;color:var(--muted);margin-bottom:4px;display:block;}
+.gate-strength{height:3px;border-radius:2px;margin-top:6px;background:var(--border);overflow:hidden;}
+.gate-strength-fill{height:100%;border-radius:2px;transition:width 0.3s,background 0.3s;width:0%;}
+
+/* slide-out animation */
+@keyframes gateOut{from{opacity:1;transform:scale(1);}to{opacity:0;transform:scale(1.03);}}
+.gate-exit{animation:gateOut 0.35s ease forwards;pointer-events:none;}
+</style>
+</head>
+<body>
+
+<!-- AUTH GATE -->
+<div id="authGate">
+  <div class="gate-card">
+    <div class="gate-logo">Cross<span>Cart</span></div>
+    <div class="gate-tagline">India's smartest price tracker — sign in to continue</div>
+    <div class="gate-tabs">
+      <button class="gate-tab active" id="gateTabLogin" onclick="switchGateTab('login')">Log In</button>
+      <button class="gate-tab" id="gateTabSignup" onclick="switchGateTab('signup')">Sign Up</button>
+    </div>
+    <!-- GATE LOGIN -->
+    <div id="gateLoginForm">
+      <div class="gate-form">
+        <div><label class="gate-label">Email address</label><input class="gate-input" type="email" id="gateLoginEmail" placeholder="you@example.com"/></div>
+        <div>
+          <label class="gate-label">Password</label>
+          <div class="gate-igroup">
+            <input class="gate-input" type="password" id="gateLoginPwd" placeholder="Your password" onkeydown="if(event.key==='Enter')gateLogin()"/>
+            <button class="gate-eye" onclick="toggleGatePwd('gateLoginPwd',this)">👁</button>
+          </div>
+        </div>
+        <div style="text-align:right;margin-top:-6px;"><a style="font-size:0.8rem;color:var(--accent);cursor:pointer;">Forgot password?</a></div>
+        <button class="gate-submit" onclick="gateLogin()">Log In →</button>
+        <div class="gate-divider">or</div>
+        <button class="gate-social" onclick="gateSocialLogin('Google')"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Continue with Google</button>
+        <div class="gate-footer">Don't have an account? <a onclick="switchGateTab('signup')">Sign up free</a></div>
+      </div>
+    </div>
+    <!-- GATE SIGNUP -->
+    <div id="gateSignupForm" style="display:none;">
+      <div class="gate-form">
+        <div class="gate-name-row">
+          <div><label class="gate-label">First name</label><input class="gate-input" type="text" id="gateFirst" placeholder="Rahul"/></div>
+          <div><label class="gate-label">Last name</label><input class="gate-input" type="text" id="gateLast" placeholder="Sharma"/></div>
+        </div>
+        <div><label class="gate-label">Email address</label><input class="gate-input" type="email" id="gateSignupEmail" placeholder="you@example.com"/></div>
+        <div>
+          <label class="gate-label">Password</label>
+          <div class="gate-igroup">
+            <input class="gate-input" type="password" id="gateSignupPwd" placeholder="Create a strong password" oninput="gateStrength(this.value)" onkeydown="if(event.key==='Enter')gateSignup()"/>
+            <button class="gate-eye" onclick="toggleGatePwd('gateSignupPwd',this)">👁</button>
+          </div>
+          <div class="gate-strength"><div class="gate-strength-fill" id="gateStrengthFill"></div></div>
+        </div>
+        <button class="gate-submit" onclick="gateSignup()">Create Account →</button>
+        <div class="gate-divider">or</div>
+        <button class="gate-social" onclick="gateSocialLogin('Google')"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Continue with Google</button>
+        <div class="gate-footer">Already have an account? <a onclick="switchGateTab('login')">Log in</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Cross<span>Cart</span></div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#" onclick="openAlertModal();return false;">Set Alert</a>
+
+    <!-- Logged-out buttons -->
+    <div id="navLoggedOut" style="display:flex;gap:10px;align-items:center;">
+      <button class="nav-login-btn" onclick="openAuthModal('login')">Log In</button>
+      <button class="nav-signup-btn" onclick="openAuthModal('signup')">Sign Up Free</button>
+    </div>
+
+    <!-- Logged-in state -->
+    <div id="navLoggedIn" class="nav-user">
+      <!-- Notification Bell -->
+      <div class="notif-wrapper">
+        <button class="notif-bell" id="notifBell" onclick="toggleNotifDropdown()" title="Notifications">
+          🔔
+          <span class="notif-badge" id="notifBadge">0</span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <h4>Notifications</h4>
+            <button class="notif-clear" onclick="clearNotifications()">Clear all</button>
+          </div>
+          <div class="notif-list" id="notifList">
+            <div class="notif-empty">No notifications yet.<br/>Set a price alert to get started!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alert button -->
+      <button class="nav-alert-btn" onclick="openAlertModal()">🔔 Price Alert</button>
+
+      <!-- Avatar + dropdown -->
+      <div class="notif-wrapper">
+        <div class="nav-avatar" id="navAvatar" onclick="toggleUserDropdown()">?</div>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="user-dropdown-header">
+            <div class="user-dropdown-name" id="ddName">—</div>
+            <div class="user-dropdown-email" id="ddEmail">—</div>
+          </div>
+          <button class="user-dropdown-item" onclick="openMyAlerts()">🔔 My Alerts</button>
+          <button class="user-dropdown-item danger" onclick="logout()">← Log Out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🇮🇳 India's Smartest Price Tracker</div>
+  <h1>Stop Overpaying.<br/><em>Compare Prices Instantly.</em></h1>
+  <p>Search any product and CrossCart finds the best price across Amazon, Flipkart, Meesho &amp; more — in real time.</p>
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="Search for iPhone 15, boAt earphones, Nike shoes..." onkeydown="if(event.key==='Enter')doSearch()"/>
+    <button id="searchBtn" onclick="doSearch()">Search →</button>
+  </div>
+  <div class="platforms">
+    <div class="pill"><div class="pill-dot" style="background:#ff9900"></div>Amazon</div>
+    <div class="pill"><div class="pill-dot" style="background:#2874f0"></div>Flipkart</div>
+    <div class="pill"><div class="pill-dot" style="background:#f43397"></div>Meesho</div>
+    <div class="pill"><div class="pill-dot" style="background:#e40000"></div>Snapdeal</div>
+  </div>
+</section>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Searching across all platforms...</div>
+</div>
+
+<!-- EMPTY STATE -->
+<div id="emptyState">
+  <div class="empty-icon">🔍</div>
+  <div class="empty-title">No results found</div>
+  <div class="empty-sub">Try a different search term — e.g. "boat earphones" or "samsung s24"</div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" style="padding:0 24px 40px;">
+
+  <!-- QUICK ALERT BAR -->
+  <div class="alert-quick-bar" id="quickAlertBar" style="display:none;">
+    <span>Found a good deal? <strong>Set a price drop alert</strong> and we'll notify you instantly.</span>
+    <button class="alert-set-btn" onclick="openAlertModal()">🔔 Set Alert →</button>
+  </div>
+
+  <!-- BEST PRICE BANNER -->
+  <div class="best-banner fade-up" style="max-width:900px;margin:0 auto 28px;">
+    <div class="best-left">
+      <div class="best-icon">🏆</div>
+      <div>
+        <div class="best-label">Best Price Found</div>
+        <div class="best-name" id="bestName">—</div>
+      </div>
+    </div>
+    <div class="best-right">
+      <div class="best-price" id="bestPrice">—</div>
+      <div class="best-app" id="bestApp">—</div>
+      <a href="#" id="bestLink" class="best-link" target="_blank">Buy Now ↗</a>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+    <div class="card card-full fade-up fade-up-d1">
+      <div class="section-title">💰 Price Comparison <span id="resultCount"></span></div>
+      <div class="price-cards" id="priceCards"></div>
+    </div>
+    <div class="card fade-up fade-up-d2">
+      <div class="section-title">📊 Price Chart</div>
+      <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+    </div>
+    <div class="card fade-up fade-up-d3">
+      <div class="section-title">💡 Savings Analysis</div>
+      <div class="savings-grid" id="savingsGrid"></div>
+      <div style="margin-top:16px;">
+        <div class="section-title" style="font-size:0.95rem;margin-bottom:10px;">🕐 Price History</div>
+        <div class="history-list" id="historyList">
+          <div style="color:var(--muted);font-size:0.85rem;padding:8px;">Search a product to see price history</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features" style="position:relative;z-index:1;">
+  <div style="text-align:center;padding:40px 24px 20px;">
+    <div class="hero-badge">Why CrossCart?</div>
+    <h2 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-top:12px;">Built Different</h2>
+  </div>
+  <div class="features">
+    <div class="feature-card"><div class="feature-icon">⚡</div><div class="feature-title">Real-Time Prices</div><div class="feature-desc">Live data scraped directly from Amazon, Flipkart, Meesho and more. Always fresh.</div></div>
+    <div class="feature-card"><div class="feature-icon">📈</div><div class="feature-title">Price History Graph</div><div class="feature-desc">See how prices have moved over time. Know if now is the right time to buy.</div></div>
+    <div class="feature-card"><div class="feature-icon">🔔</div><div class="feature-title">Price Drop Alerts</div><div class="feature-desc">Set a target price. We notify you the moment any platform hits it.</div></div>
+    <div class="feature-card"><div class="feature-icon">🏆</div><div class="feature-title">Best Price Finder</div><div class="feature-desc">Instant winner highlight including real shipping costs — not just base price.</div></div>
+  </div>
+</section>
+
+<footer>Built with ❤️ by <strong>Team CrossCart</strong> — Compare smarter, save more.</footer>
+
+<!-- ══════════════════════════════════════ -->
+<!-- AUTH MODAL                           -->
+<!-- ══════════════════════════════════════ -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal" style="width:min(440px,92vw);">
+    <button class="modal-close" onclick="closeAuthModal()">×</button>
+    <div class="modal-logo"><div class="logo-text">Cross<span>Cart</span></div></div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Log In</button>
+      <button class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="loginForm">
+      <div class="modal-form">
+        <div>
+          <label class="form-label">Email address</label>
+          <input class="modal-input" type="email" id="loginEmail" placeholder="you@example.com"/>
+        </div>
+        <div>
+          <label class="form-label">Password</label>
+          <div class="input-group">
+            <input class="modal-input" type="password" id="loginPassword" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()"/>
+            <button class="input-eye" onclick="togglePwd('loginPassword',this)">👁</button>
+          </div>
+        </div>
+        <div style="text-align:right;margin-top:-6px;"><a style="font-size:0.8rem;color:var(--accent);cursor:pointer;">Forgot password?</a></div>
+        <button class="modal-submit" onclick="doLogin()">Log In →</button>
+        <div class="divider">or continue with</div>
+        <button class="social-btn" onclick="doSocialLogin('Google')">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+        <div class="auth-footer">Don't have an account? <a onclick="switchAuthTab('signup')">Sign up free</a></div>
+      </div>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signupForm" style="display:none;">
+      <div class="modal-form">
+        <div style="display:flex;gap:12px;">
+          <div style="flex:1;"><label class="form-label">First name</label><input class="modal-input" type="text" id="signupFirst" placeholder="Rahul"/></div>
+          <div style="flex:1;"><label class="form-label">Last name</label><input class="modal-input" type="text" id="signupLast" placeholder="Sharma"/></div>
+        </div>
+        <div>
+          <label class="form-label">Email address</label>
+          <input class="modal-input" type="email" id="signupEmail" placeholder="you@example.com"/>
+        </div>
+        <div>
+          <label class="form-label">Password</label>
+          <div class="input-group">
+            <input class="modal-input" type="password" id="signupPassword" placeholder="Create a strong password" oninput="checkStrength(this.value)" onkeydown="if(event.key==='Enter')doSignup()"/>
+            <button class="input-eye" onclick="togglePwd('signupPassword',this)">👁</button>
+          </div>
+          <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+        </div>
+        <button class="modal-submit" onclick="doSignup()">Create Account →</button>
+        <div class="divider">or continue with</div>
+        <button class="social-btn" onclick="doSocialLogin('Google')">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+        <div class="auth-footer">Already have an account? <a onclick="switchAuthTab('login')">Log in</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALERT MODAL -->
+<div class="modal-overlay" id="alertModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAlertModal()">×</button>
+    <h2>🔔 Set Price Alert</h2>
+    <p>Get notified when the price drops to your target across any platform.</p>
+    <div class="modal-form">
+      <input class="modal-input" type="text" id="alertProduct" placeholder="Product name (e.g. Samsung S24)"/>
+      <input class="modal-input" type="email" id="alertEmail" placeholder="Your email address"/>
+      <input class="modal-input" type="number" id="alertPrice" placeholder="Target price (₹) — alert when price falls below this"/>
+      <select class="modal-input" id="alertPlatform">
+        <option value="any">Any platform</option>
+        <option value="Amazon">Amazon only</option>
+        <option value="Flipkart">Flipkart only</option>
+        <option value="Meesho">Meesho only</option>
+      </select>
+      <div class="modal-row">
+        <button class="modal-cancel" onclick="closeAlertModal()">Cancel</button>
+        <button class="modal-submit" onclick="saveAlert()">Set Alert →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MY ALERTS MODAL -->
+<div class="modal-overlay" id="myAlertsModal">
+  <div class="modal" style="width:min(520px,92vw);">
+    <button class="modal-close" onclick="document.getElementById('myAlertsModal').classList.remove('open')">×</button>
+    <h2>🔔 My Price Alerts</h2>
+    <p>Manage your active price drop alerts.</p>
+    <div id="myAlertsList" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;"></div>
+    <div style="margin-top:16px;">
+      <button class="modal-submit" style="width:100%;" onclick="document.getElementById('myAlertsModal').classList.remove('open');openAlertModal()">+ Add New Alert</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon">✅</span>
+  <span id="toastMsg">Done!</span>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────
+const API_BASE = 'http://localhost:5000';
+const COLORS = {'Amazon':'#ff9900','Flipkart':'#2874f0','Meesho':'#f43397','Meesho*':'#f43397','Snapdeal':'#e40000','Snapdeal*':'#e40000','Flipkart*':'#2874f0','eBay':'#86b817'};
+function getColor(app){ for(const k of Object.keys(COLORS)){ if(app.startsWith(k.replace('*',''))) return COLORS[k]; } return '#6c63ff'; }
+
+// ── STORAGE HELPERS ──────────────────────────
+function getAlerts(){ return JSON.parse(localStorage.getItem('cc_alerts')||'[]'); }
+function saveAlerts(a){ localStorage.setItem('cc_alerts', JSON.stringify(a)); }
+function getUser(){ return JSON.parse(localStorage.getItem('cc_user')||'null'); }
+function saveUser(u){ localStorage.setItem('cc_user', JSON.stringify(u)); }
+function getNotifications(){ return JSON.parse(localStorage.getItem('cc_notifs')||'[]'); }
+function saveNotifications(n){ localStorage.setItem('cc_notifs', JSON.stringify(n)); }
+
+// ── AUTH STATE ───────────────────────────────
+let currentUser = getUser();
+
+// ── AUTH GATE FUNCTIONS ──────────────────────
+function showGate(){
+  const g = document.getElementById('authGate');
+  g.style.display = 'flex';
+  g.classList.remove('gate-exit');
+}
+
+function hideGate(){
+  const g = document.getElementById('authGate');
+  g.classList.add('gate-exit');
+  setTimeout(()=>{ g.style.display='none'; }, 340);
+}
+
+function switchGateTab(tab){
+  const isLogin = tab==='login';
+  document.getElementById('gateTabLogin').classList.toggle('active', isLogin);
+  document.getElementById('gateTabSignup').classList.toggle('active', !isLogin);
+  document.getElementById('gateLoginForm').style.display  = isLogin ? 'block':'none';
+  document.getElementById('gateSignupForm').style.display = isLogin ? 'none':'block';
+}
+
+function toggleGatePwd(id,btn){ const i=document.getElementById(id); if(i.type==='password'){i.type='text';btn.textContent='🙈';}else{i.type='password';btn.textContent='👁';} }
+
+function gateStrength(val){
+  const fill=document.getElementById('gateStrengthFill');
+  let s=0;
+  if(val.length>=6)s++; if(val.length>=10)s++; if(/[A-Z]/.test(val))s++; if(/[0-9]/.test(val))s++; if(/[^A-Za-z0-9]/.test(val))s++;
+  fill.style.width=(s/5*100)+'%';
+  fill.style.background=s<=1?'#ff6584':s<=3?'#ffd166':'#43e97b';
+}
+
+function gateLogin(){
+  const email = document.getElementById('gateLoginEmail').value.trim();
+  const pwd   = document.getElementById('gateLoginPwd').value;
+  if(!email||!email.includes('@')){ showToast('⚠️','Enter a valid email'); return; }
+  if(!pwd){ showToast('⚠️','Enter your password'); return; }
+  const stored = JSON.parse(localStorage.getItem('cc_registered')||'null');
+  if(stored && stored.email===email && stored.pwd===pwd){
+    currentUser = stored;
+  } else if(!stored || stored.email!==email) {
+    currentUser = { email, first: email.split('@')[0], last:'', demo:true };
+  } else {
+    showToast('❌','Incorrect password'); return;
+  }
+  saveUser(currentUser);
+  showLoggedIn(currentUser);
+  hideGate();
+  showToast('👋','Welcome back, '+(currentUser.first||currentUser.email)+'!');
+  addNotification('👋','Logged in!','Welcome back to CrossCart.');
+}
+
+function gateSignup(){
+  const first = document.getElementById('gateFirst').value.trim();
+  const last  = document.getElementById('gateLast').value.trim();
+  const email = document.getElementById('gateSignupEmail').value.trim();
+  const pwd   = document.getElementById('gateSignupPwd').value;
+  if(!first){ showToast('⚠️','Enter your first name'); return; }
+  if(!email||!email.includes('@')){ showToast('⚠️','Enter a valid email'); return; }
+  if(!pwd||pwd.length<6){ showToast('⚠️','Password must be 6+ characters'); return; }
+  currentUser = { first, last, email, pwd };
+  localStorage.setItem('cc_registered', JSON.stringify(currentUser));
+  saveUser(currentUser);
+  showLoggedIn(currentUser);
+  hideGate();
+  showToast('🎉','Welcome to CrossCart, '+first+'!');
+  addNotification('🎊','Account created!','Welcome! Set your first price alert to get notified on drops.');
+}
+
+function gateSocialLogin(provider){
+  currentUser = { first:'Demo', last:'User', email:'demo@'+provider.toLowerCase()+'.com', demo:true };
+  saveUser(currentUser);
+  showLoggedIn(currentUser);
+  hideGate();
+  showToast('✅','Logged in with '+provider);
+  addNotification('✅','Logged in via '+provider,'Welcome to CrossCart!');
+}
+
+function initAuthState(){
+  if(currentUser){ showLoggedIn(currentUser); hideGate(); }
+  else showGate();
+  renderNotifications();
+}
+
+function showLoggedIn(user){
+  document.getElementById('navLoggedOut').style.display = 'none';
+  const li = document.getElementById('navLoggedIn');
+  li.style.display = 'flex';
+  const initials = ((user.first||'')[0]||(user.email||'?')[0]).toUpperCase();
+  document.getElementById('navAvatar').textContent = initials;
+  document.getElementById('ddName').textContent = (user.first+' '+user.last).trim() || user.email;
+  document.getElementById('ddEmail').textContent = user.email;
+  document.getElementById('alertEmail').value = user.email;
+}
+
+function showLoggedOut(){
+  document.getElementById('navLoggedOut').style.display = 'flex';
+  document.getElementById('navLoggedIn').style.display = 'none';
+}
+
+// ── AUTH MODAL ───────────────────────────────
+function openAuthModal(tab){ closeDropdowns(); document.getElementById('authModal').classList.add('open'); switchAuthTab(tab||'login'); }
+function closeAuthModal(){ document.getElementById('authModal').classList.remove('open'); }
+
+function switchAuthTab(tab){
+  const isLogin = tab==='login';
+  document.getElementById('tabLogin').classList.toggle('active', isLogin);
+  document.getElementById('tabSignup').classList.toggle('active', !isLogin);
+  document.getElementById('loginForm').style.display  = isLogin ? 'block':'none';
+  document.getElementById('signupForm').style.display = isLogin ? 'none':'block';
+}
+
+function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const pwd   = document.getElementById('loginPassword').value;
+  if(!email||!email.includes('@')){ showToast('⚠️','Enter a valid email'); return; }
+  if(!pwd){ showToast('⚠️','Enter your password'); return; }
+  const stored = JSON.parse(localStorage.getItem('cc_registered')||'null');
+  if(stored && stored.email===email && stored.pwd===pwd){
+    currentUser = stored;
+  } else if(!stored || stored.email!==email) {
+    // Demo mode — accept any valid-looking credentials
+    currentUser = { email, first: email.split('@')[0], last:'', demo:true };
+  } else {
+    showToast('❌','Incorrect password'); return;
+  }
+  saveUser(currentUser);
+  showLoggedIn(currentUser);
+  closeAuthModal();
+  showToast('👋', 'Welcome back, '+( currentUser.first||currentUser.email)+'!');
+  addNotification('👋','Logged in!','Welcome back to CrossCart.');
+}
+
+function doSignup(){
+  const first = document.getElementById('signupFirst').value.trim();
+  const last  = document.getElementById('signupLast').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const pwd   = document.getElementById('signupPassword').value;
+  if(!first){ showToast('⚠️','Enter your first name'); return; }
+  if(!email||!email.includes('@')){ showToast('⚠️','Enter a valid email'); return; }
+  if(!pwd||pwd.length<6){ showToast('⚠️','Password must be 6+ characters'); return; }
+  currentUser = { first, last, email, pwd };
+  localStorage.setItem('cc_registered', JSON.stringify(currentUser));
+  saveUser(currentUser);
+  showLoggedIn(currentUser);
+  closeAuthModal();
+  showToast('🎉','Welcome to CrossCart, '+first+'!');
+  addNotification('🎊','Account created!','Welcome! Set your first price alert to get notified on drops.');
+}
+
+function doSocialLogin(provider){
+  currentUser = { first:'Demo', last:'User', email:'demo@'+provider.toLowerCase()+'.com', demo:true };
+  saveUser(currentUser);
+  showLoggedIn(currentUser);
+  closeAuthModal();
+  showToast('✅','Logged in with '+provider);
+  addNotification('✅','Logged in via '+provider,'Welcome to CrossCart!');
+}
+
+function logout(){
+  currentUser = null;
+  localStorage.removeItem('cc_user');
+  showLoggedOut();
+  closeDropdowns();
+  showGate();
+  showToast('👋','You have been logged out.');
+}
+
+// ── DROPDOWNS ────────────────────────────────
+function toggleUserDropdown(){ document.getElementById('notifDropdown').classList.remove('open'); document.getElementById('userDropdown').classList.toggle('open'); }
+function toggleNotifDropdown(){
+  document.getElementById('userDropdown').classList.remove('open');
+  document.getElementById('notifDropdown').classList.toggle('open');
+  const notifs = getNotifications().map(n=>({...n,read:true}));
+  saveNotifications(notifs);
+  renderNotifBadge(notifs);
+}
+function closeDropdowns(){ document.getElementById('userDropdown').classList.remove('open'); document.getElementById('notifDropdown').classList.remove('open'); }
+document.addEventListener('click', e=>{ if(!e.target.closest('.notif-wrapper')&&!e.target.closest('#navLoggedIn')) closeDropdowns(); });
+
+// ── PASSWORD UX ──────────────────────────────
+function togglePwd(id,btn){ const i=document.getElementById(id); if(i.type==='password'){i.type='text';btn.textContent='🙈';}else{i.type='password';btn.textContent='👁';} }
+function checkStrength(val){
+  const fill=document.getElementById('strengthFill');
+  let s=0;
+  if(val.length>=6)s++; if(val.length>=10)s++; if(/[A-Z]/.test(val))s++; if(/[0-9]/.test(val))s++; if(/[^A-Za-z0-9]/.test(val))s++;
+  fill.style.width=(s/5*100)+'%';
+  fill.style.background=s<=1?'#ff6584':s<=3?'#ffd166':'#43e97b';
+}
+
+// ── NOTIFICATIONS ────────────────────────────
+function addNotification(icon,title,msg){
+  const notifs=getNotifications();
+  notifs.unshift({id:Date.now(),icon,title,msg,time:new Date().toISOString(),read:false});
+  if(notifs.length>30)notifs.pop();
+  saveNotifications(notifs);
+  renderNotifications();
+  const bell=document.getElementById('notifBell');
+  bell.classList.remove('bell-ring');
+  void bell.offsetWidth;
+  bell.classList.add('bell-ring');
+}
+
+function renderNotifications(){
+  const notifs=getNotifications();
+  renderNotifBadge(notifs);
+  const list=document.getElementById('notifList');
+  if(!notifs.length){ list.innerHTML='<div class="notif-empty">No notifications yet.<br/>Set a price alert to get started!</div>'; return; }
+  list.innerHTML=notifs.slice(0,15).map(n=>`
+    <div class="notif-item ${n.read?'':'unread'}">
+      <div class="notif-item-icon">${n.icon}</div>
+      <div class="notif-item-body">
+        <div class="notif-item-title">${n.title}</div>
+        <div class="notif-item-msg">${n.msg}</div>
+        <div class="notif-item-time">${formatTime(n.time)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderNotifBadge(notifs){
+  const unread=notifs.filter(n=>!n.read).length;
+  const badge=document.getElementById('notifBadge');
+  if(unread>0){ badge.textContent=unread>9?'9+':unread; badge.classList.add('show'); }
+  else badge.classList.remove('show');
+}
+
+function clearNotifications(){ saveNotifications([]); renderNotifications(); closeDropdowns(); }
+
+// ── SEARCH ───────────────────────────────────
+let priceChartInstance=null, lastResults=[], lastQuery='';
+
+async function doSearch(){
+  const q=document.getElementById('searchInput').value.trim();
+  if(!q){ showToast('⚠️','Please enter a product name'); return; }
+  lastQuery=q;
+  showLoading(true);
+  hideResults();
+  document.getElementById('emptyState').style.display='none';
+  const msgs=['Checking Amazon prices...','Fetching Flipkart deals...','Scanning Meesho...','Comparing all platforms...'];
+  let mi=0;
+  const lt=setInterval(()=>{ document.getElementById('loadingText').textContent=msgs[mi++%msgs.length]; },1800);
+  try{
+    const res=await fetch(`${API_BASE}/search?q=${encodeURIComponent(q)}`);
+    const data=await res.json();
+    clearInterval(lt); showLoading(false);
+    if(!data.results||!data.results.length){ document.getElementById('emptyState').style.display='block'; return; }
+    lastResults=data.results;
+    renderResults(data);
+    checkAlerts(data.results,q);
+    loadHistory(q);
+  }catch(e){
+    clearInterval(lt); showLoading(false);
+    showToast('❌','Could not reach backend. Is app.py running?');
+  }
+}
+
+function renderResults(data){
+  document.getElementById('results').style.display='block';
+  document.getElementById('quickAlertBar').style.display='flex';
+  const best=data.best;
+  document.getElementById('bestName').textContent=best.name;
+  document.getElementById('bestPrice').textContent=best.price;
+  document.getElementById('bestApp').textContent='on '+best.app;
+  document.getElementById('bestLink').href=best.url||'#';
+  const liveCount=data.results.filter(r=>!r.estimated).length;
+  document.getElementById('resultCount').textContent=`${data.results.length} results (${liveCount} live)`;
+  const pc=document.getElementById('priceCards');
+  pc.innerHTML='';
+  data.results.forEach((r,i)=>{
+    const isBest=i===0;
+    const el=document.createElement('a');
+    el.href=r.url||'#'; el.target='_blank';
+    el.className='price-row'+(isBest?' cheapest':'');
+    el.innerHTML=`<div class="platform-info"><div class="platform-dot" style="background:${getColor(r.app)}"></div><div><div class="platform-name">${r.app}${r.estimated?'<span class="est-tag">EST</span>':''}${isBest?'<span class="best-tag">BEST</span>':''}</div><div class="platform-ship">${r.real_price||r.shipping||''}</div></div></div><div class="price-val">${r.price}</div>`;
+    pc.appendChild(el);
+  });
+  renderChart(data.results);
+  renderSavings(data.results);
+}
+
+function renderChart(results){
+  const ctx=document.getElementById('priceChart').getContext('2d');
+  if(priceChartInstance) priceChartInstance.destroy();
+  const labels=results.map(r=>r.app.replace('*',''));
+  const prices=results.map(r=>parseFloat(String(r.price).replace('₹','').replace(/,/g,'').trim())||0);
+  const colors=results.map(r=>getColor(r.app));
+  priceChartInstance=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Price (₹)',data:prices,backgroundColor:colors.map(c=>c+'33'),borderColor:colors,borderWidth:2,borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' ₹'+ctx.parsed.y.toLocaleString('en-IN')}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#7a7a9a',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#7a7a9a',font:{size:11},callback:v=>'₹'+v.toLocaleString('en-IN')}}}}});
+}
+
+function renderSavings(results){
+  const prices=results.map(r=>parseFloat(String(r.price).replace('₹','').replace(/,/g,''))).filter(p=>!isNaN(p)&&p>0);
+  if(!prices.length) return;
+  const min=Math.min(...prices),max=Math.max(...prices),avg=prices.reduce((a,b)=>a+b,0)/prices.length;
+  const saved=max-min, pct=((saved/max)*100).toFixed(0);
+  const fmt=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+  document.getElementById('savingsGrid').innerHTML=`<div class="saving-item"><div class="saving-label">Max Saving</div><div class="saving-value">${fmt(saved)}</div></div><div class="saving-item"><div class="saving-label">You Save</div><div class="saving-value">${pct}%</div></div><div class="saving-item"><div class="saving-label">Avg Price</div><div class="saving-value" style="color:var(--gold)">${fmt(avg)}</div></div><div class="saving-item"><div class="saving-label">Best vs Worst</div><div class="saving-value" style="color:var(--accent2)">${fmt(min)} vs ${fmt(max)}</div></div>`;
+}
+
+async function loadHistory(q){
+  try{
+    const res=await fetch(`${API_BASE}/history?q=${encodeURIComponent(q)}`);
+    const data=await res.json();
+    const list=document.getElementById('historyList');
+    if(!data.history||!data.history.length){ list.innerHTML='<div style="color:var(--muted);font-size:0.85rem;padding:8px;">No history yet — check back later</div>'; return; }
+    list.innerHTML=data.history.slice(0,8).map(h=>`<div class="history-row"><span class="history-app" style="color:${getColor(h.app)}">${h.app}</span><span class="history-price">${h.price}</span><span class="history-time">${formatTime(h.timestamp)}</span></div>`).join('');
+  }catch(e){}
+}
+
+function formatTime(ts){
+  if(!ts) return '';
+  try{ return new Date(ts).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }catch{ return ts; }
+}
+
+// ── ALERT MODAL ───────────────────────────────
+function openAlertModal(){
+  closeDropdowns();
+  if(!currentUser){
+    showToast('🔒','Please log in to set price alerts');
+    setTimeout(()=>openAuthModal('signup'),600);
+    return;
+  }
+  const q=document.getElementById('searchInput').value.trim();
+  if(q) document.getElementById('alertProduct').value=q;
+  if(currentUser.email) document.getElementById('alertEmail').value=currentUser.email;
+  document.getElementById('alertModal').classList.add('open');
+}
+function closeAlertModal(){ document.getElementById('alertModal').classList.remove('open'); }
+
+function saveAlert(){
+  const product=document.getElementById('alertProduct').value.trim();
+  const email=document.getElementById('alertEmail').value.trim();
+  const price=parseFloat(document.getElementById('alertPrice').value);
+  const platform=document.getElementById('alertPlatform').value;
+  if(!product){ showToast('⚠️','Enter a product name'); return; }
+  if(!email||!email.includes('@')){ showToast('⚠️','Enter a valid email'); return; }
+  if(!price||price<=0){ showToast('⚠️','Enter a valid target price'); return; }
+  const alerts=getAlerts();
+  alerts.push({id:Date.now(),product,email,price,platform,created:new Date().toISOString(),triggered:false});
+  saveAlerts(alerts);
+  closeAlertModal();
+  showToast('🔔',`Alert set! Notify when ${product} drops below ₹${price.toLocaleString('en-IN')}`);
+  addNotification('🔔','Price alert set!',`Tracking ${product} — target ₹${price.toLocaleString('en-IN')} on ${platform==='any'?'any platform':platform}`);
+}
+
+function checkAlerts(results,query){
+  const alerts=getAlerts();
+  let triggered=false;
+  alerts.forEach(alert=>{
+    if(alert.triggered) return;
+    const match=query.toLowerCase().includes(alert.product.toLowerCase())||alert.product.toLowerCase().includes(query.toLowerCase());
+    if(!match) return;
+    results.forEach(r=>{
+      if(alert.platform!=='any'&&!r.app.startsWith(alert.platform)) return;
+      const p=parseFloat(String(r.price).replace('₹','').replace(/,/g,''));
+      if(p&&p<=alert.price){
+        showPriceDropToast(r.app,r.price,alert.product);
+        addNotification('🎉','Price Drop Alert!',`${r.app} has ${alert.product} at ${r.price} — below your target of ₹${alert.price.toLocaleString('en-IN')}!`);
+        triggered=true; alert.triggered=true;
+      }
+    });
+  });
+  if(triggered) saveAlerts(alerts);
+}
+
+// ── MY ALERTS ────────────────────────────────
+function openMyAlerts(){
+  closeDropdowns();
+  const alerts=getAlerts();
+  const list=document.getElementById('myAlertsList');
+  if(!alerts.length){
+    list.innerHTML='<div style="color:var(--muted);font-size:0.88rem;padding:16px 0;">No alerts set yet. Add one below!</div>';
+  } else {
+    list.innerHTML=alerts.map(a=>`
+      <div class="my-alert-item">
+        <div>
+          <div class="my-alert-product">${a.product}</div>
+          <div class="my-alert-meta">Target: <strong style="color:var(--accent3)">₹${Number(a.price).toLocaleString('en-IN')}</strong> &nbsp;·&nbsp; ${a.platform==='any'?'All platforms':a.platform} &nbsp;·&nbsp; ${a.triggered?'<span style="color:var(--accent3)">✓ Triggered</span>':'Active'}</div>
+        </div>
+        <button class="my-alert-delete" onclick="deleteAlert(${a.id})">✕</button>
+      </div>`).join('');
+  }
+  document.getElementById('myAlertsModal').classList.add('open');
+}
+
+function deleteAlert(id){
+  saveAlerts(getAlerts().filter(a=>a.id!==id));
+  openMyAlerts();
+  showToast('🗑️','Alert removed');
+}
+
+// ── TOAST ─────────────────────────────────────
+let toastTmr=null;
+function showToast(icon,msg,dur=3500){
+  const t=document.getElementById('toast');
+  document.getElementById('toastIcon').textContent=icon;
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.remove('price-drop');
+  t.classList.add('show');
+  clearTimeout(toastTmr);
+  toastTmr=setTimeout(()=>t.classList.remove('show'),dur);
+}
+function showPriceDropToast(app,price,product){
+  const t=document.getElementById('toast');
+  document.getElementById('toastIcon').textContent='🎉';
+  document.getElementById('toastMsg').textContent=`Price drop! ${app} has ${product} at ${price}`;
+  t.classList.add('show','price-drop');
+  clearTimeout(toastTmr);
+  toastTmr=setTimeout(()=>t.classList.remove('show'),5000);
+}
+
+// ── UI HELPERS ────────────────────────────────
+function showLoading(v){ document.getElementById('loading').style.display=v?'block':'none'; }
+function hideResults(){ document.getElementById('results').style.display='none'; }
+
+['alertModal','authModal','myAlertsModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){ if(e.target===this)this.classList.remove('open'); });
+});
+
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){ e.preventDefault(); document.getElementById('searchInput').focus(); }
+  if(e.key==='Escape'){ ['alertModal','authModal','myAlertsModal'].forEach(id=>document.getElementById(id).classList.remove('open')); closeDropdowns(); }
+});
+
+// ── INIT ─────────────────────────────────────
+initAuthState();
+</script>
+</body>
+</html>
